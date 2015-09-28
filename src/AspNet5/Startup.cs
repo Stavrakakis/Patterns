@@ -11,6 +11,8 @@
     using Models;
     using System.Reflection;
     using Serilog;
+    using SerilogWeb.Classic.Enrichers;
+    using SerilogWeb.Classic;
 
     public class Startup
     {
@@ -60,9 +62,13 @@
         {            
             app.UseStaticFiles();
             app.UseMvc();
+            
 
             Log.Logger = new LoggerConfiguration()
                                 .WriteTo.File(@"C:\work\serilog.txt")
+                                .Enrich.With<HttpRequestIdEnricher>()
+                                .Enrich.With<UserNameEnricher>()
+                                .MinimumLevel.Verbose()
                                 .CreateLogger();
         }
     }

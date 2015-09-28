@@ -11,35 +11,23 @@
     [Route("api/values")]
     public class ValuesController : Controller
     {
-        private readonly IProductRepository productRepository;
-
         private readonly IRepository<Thingy> thingyRepository;
 
-        public ValuesController(IProductRepository productRepository, IRepository<Thingy> thingyRepository)
+        public ValuesController(IRepository<Thingy> thingyRepository)
         {
-            if (productRepository == null)
-            {
-                throw new ArgumentNullException("productRepository");
-            }
-
             if (thingyRepository == null)
             {
                 throw new ArgumentNullException("thingyRepository");
             }
-
-            this.productRepository = productRepository;
+            
             this.thingyRepository = thingyRepository;
         }
 
         // GET: api/values
         [HttpGet]
-        public async Task<IEnumerable<string>> Get()
+        public async Task<IEnumerable<Thingy>> Get()
         {
-            var thingies = await this.thingyRepository.GetAll();
-
-            var products = await this.productRepository.GetAll();
-
-            return products;
+            return await this.thingyRepository.GetAll();
         }
 
         // GET api/values/5

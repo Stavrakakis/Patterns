@@ -4,11 +4,11 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    public class LoggedRepository<TEntity> : IRepository<TEntity>
+    public class PerformanceLoggingRepository<TEntity> : IRepository<TEntity>
     {
-        IRepository<TEntity> repository;
-
-        public LoggedRepository(IRepository<TEntity> repository)
+        private readonly IRepository<TEntity> repository;
+        
+        public PerformanceLoggingRepository(IRepository<TEntity> repository)
         {
             this.repository = repository;
         }

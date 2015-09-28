@@ -1,40 +1,70 @@
 ﻿namespace AspNet5.Repositories
 {
-    using AspNet5.Services;
+    using Logging;
     using Microsoft.Framework.Caching.Memory;
-    using Serilog;
     using System;
     using System.Collections.Generic;
+    using System.Reflection;
     using System.Threading.Tasks;
 
     public class CachedRepository<TEntity> : IRepository<TEntity>
     {
-        IRepository<TEntity> repository;
-        ICacheProvider cacheProvider;
-        private static MemoryCache cache = new MemoryCache(new MemoryCacheOptions { });
+        private readonly IRepository<TEntity> repository;
+        private readonly ILoggerFactory loggerFactory;
 
-        public CachedRepository(IRepository<TEntity> repository, ICacheProvider cp)
+        private readonly static MemoryCache cache = new MemoryCache(new MemoryCacheOptions { });
+
+        public CachedRepository(IRepository<TEntity> repository, ILoggerFactory loggerFactory)
         {
             this.repository = repository;
-            this.cacheProvider = cp;
+            this.loggerFactory = loggerFactory;
         }
 
         public async Task<IEnumerable<TEntity>> GetAll()
         {
+            var loggerContextType = this.repository.GetType();
             var cachedItems = cache.Get<IEnumerable<TEntity>>("thingies");
 
+            var logger = this.loggerFactory.GetLogger(loggerContextType);
+            
             if (cachedItems != null)
             {
-                Log.Information("Getting thingies from cache");
+                logger.Log("Getting thingies from cache");
                 return cachedItems;
             }
 
-            Log.Information("Getting thingies from database");
+            MethodBase method = loggerContextType.GetMethod("GetAll");
+
+            var cacheOptions = method.GetCustomAttribute<CacheAttribute>();
+
+            logger.Log("Getting thingies from database");
 
             var entities = await this.repository.GetAll();
-            cache.Set("thingies", entities, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20) });
+            cache.Set("thingies", entities, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(cacheOptions.ExpiryInMinutes) });
 
             return entities;
+        }
+    }
+
+    public class CacheAttribute : Attribute
+    {
+        private int minutes;
+
+        public CacheAttribute(int minutes)
+        {
+            this.minutes = minutes;
+        }
+
+        public int ExpiryInMinutes
+        {
+            get
+            {
+                return minutes;
+            }
+            set
+            {
+                this.minutes = value;
+            }
         }
     }
 }

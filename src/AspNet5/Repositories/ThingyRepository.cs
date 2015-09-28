@@ -7,6 +7,7 @@
 
     public class ThingyRepository : IRepository<Thingy>
     {
+        [Cache(minutes: 20)]
         public Task<IEnumerable<Thingy>> GetAll()
         {
             var thingies = new List<Thingy> { new Thingy { Name = "A Normal Thingy" } };

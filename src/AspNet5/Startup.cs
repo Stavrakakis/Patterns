@@ -9,10 +9,10 @@
     using Autofac.Framework.DependencyInjection;
     using Repositories;
     using Models;
-    using System.Reflection;
     using Serilog;
     using SerilogWeb.Classic.Enrichers;
     using SerilogWeb.Classic;
+    using Logging;
 
     public class Startup
     {
@@ -29,13 +29,7 @@
             var builder = new ContainerBuilder();
 
             builder.RegisterType<ConcreteCacheProvider>().As<ICacheProvider>();
-            
-            builder.RegisterType<ProductRepository>()
-                   .Named<IProductRepository>("productRepository");
-
-            builder.RegisterDecorator<IProductRepository>(
-                (c, inner) => new CachingProductRepository(inner, c.Resolve<ICacheProvider>()),
-                fromKey: "productRepository");
+            builder.RegisterType<SerilogLoggerFactory>().As<ILoggerFactory>();
 
             builder.RegisterType(typeof(ThingyRepository)).Named<IRepository<Thingy>>("repository");
 
@@ -46,7 +40,7 @@
                     .Keyed("decorated", typeof(IRepository<>));
 
             builder.RegisterGenericDecorator(
-                    typeof(LoggedRepository<>),
+                    typeof(PerformanceLoggingRepository<>),
                     typeof(IRepository<>),
                     fromKey: "decorated");
 
@@ -63,11 +57,9 @@
             app.UseStaticFiles();
             app.UseMvc();
             
-
             Log.Logger = new LoggerConfiguration()
-                                .WriteTo.File(@"C:\work\serilog.txt")
+                                .WriteTo.File(@"C:\work\serilog.txt", outputTemplate: "BLAH {Timestamp} [{Level}] ({HttpRequestId}|{UserName}) ({SourceContext}) {Message}{NewLine}{Exception}")
                                 .Enrich.With<HttpRequestIdEnricher>()
-                                .Enrich.With<UserNameEnricher>()
                                 .MinimumLevel.Verbose()
                                 .CreateLogger();
         }
